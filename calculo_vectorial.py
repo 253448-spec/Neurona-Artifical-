@@ -111,3 +111,81 @@ def perdida_mse(
     x_array, y_array = _validar_datos(x, y)
     _validar_parametros_lineales(w, b)
     return _perdida_mse(x_array, y_array, w, b)
+
+
+def derivada_parcial_w(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w: float,
+    b: float,
+    h: float,
+) -> float:
+    """Aproxima dL/dw con diferencias finitas centradas."""
+    x_array, y_array = _validar_datos(x, y)
+    _validar_parametros_lineales(w, b)
+    paso = _validar_h(h)
+    return float(
+        (
+            _perdida_mse(x_array, y_array, w + paso, b)
+            - _perdida_mse(x_array, y_array, w - paso, b)
+        )
+        / (2 * paso)
+    )
+
+
+def derivada_parcial_b(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w: float,
+    b: float,
+    h: float,
+) -> float:
+    """Aproxima dL/db con diferencias finitas centradas."""
+    x_array, y_array = _validar_datos(x, y)
+    _validar_parametros_lineales(w, b)
+    paso = _validar_h(h)
+    return float(
+        (
+            _perdida_mse(x_array, y_array, w, b + paso)
+            - _perdida_mse(x_array, y_array, w, b - paso)
+        )
+        / (2 * paso)
+    )
+
+
+def gradiente(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w: float,
+    b: float,
+    h: float,
+) -> np.ndarray:
+    """Construye el gradiente numerico (dL/dw, dL/db)."""
+    x_array, y_array = _validar_datos(x, y)
+    _validar_parametros_lineales(w, b)
+    paso = _validar_h(h)
+    derivada_w = (
+        _perdida_mse(x_array, y_array, w + paso, b)
+        - _perdida_mse(x_array, y_array, w - paso, b)
+    ) / (2 * paso)
+    derivada_b = (
+        _perdida_mse(x_array, y_array, w, b + paso)
+        - _perdida_mse(x_array, y_array, w, b - paso)
+    ) / (2 * paso)
+    return np.array([float(derivada_w), float(derivada_b)])
+
+
+def gradiente_analitico(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w: float,
+    b: float,
+) -> np.ndarray:
+    """Calcula el gradiente exacto para comparar con el numerico."""
+    x_array, y_array = _validar_datos(x, y)
+    _validar_parametros_lineales(w, b)
+    residuos = y_array - (w * x_array + b)
+    n = x_array.size
+    derivada_w = float(-2.0 * np.sum(x_array * residuos) / n)
+    derivada_b = float(-2.0 * np.sum(residuos) / n)
+    return np.array([derivada_w, derivada_b])

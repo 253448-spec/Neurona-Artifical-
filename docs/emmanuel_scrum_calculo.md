@@ -46,7 +46,7 @@ No guardes resultados finales como si fueran notas fijas: el programa debe calcu
 
 ## 5. Seguimiento Scrum
 
-Usa la tabla siguiente durante el desarrollo. Actualízala con tareas reales y elimina las filas cuando se sustituyan por el seguimiento del equipo.
+Control y registro de tareas del equipo para el desarrollo del proyecto:
 
 | Fecha | Tarea o acuerdo | Responsable | Estado | Bloqueo o siguiente paso |
 |---|---|---|---|---|

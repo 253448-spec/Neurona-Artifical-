@@ -275,3 +275,132 @@ def comprobar_teorema(
         "cantidad": int(cantidad),
         "casos": casos,
     }
+
+
+def _validar_alpha(alpha: float) -> float:
+    """Valida la tasa de aprendizaje."""
+    if not np.isfinite(alpha) or alpha <= 0:
+        raise ValueError("alpha debe ser un valor finito mayor que cero.")
+    return float(alpha)
+
+
+def _validar_tolerancia(tolerancia: float) -> float:
+    """Valida la tolerancia del criterio de paro."""
+    if not np.isfinite(tolerancia) or tolerancia <= 0:
+        raise ValueError("tolerancia debe ser un valor finito mayor que cero.")
+    return float(tolerancia)
+
+
+def _validar_max_iter(max_iter: int) -> int:
+    """Valida el limite de iteraciones."""
+    if isinstance(max_iter, bool) or not isinstance(max_iter, (int, np.integer)) or max_iter <= 0:
+        raise ValueError("max_iter debe ser un entero positivo.")
+    return int(max_iter)
+
+
+def descenso_gradiente(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w_inicial: float,
+    b_inicial: float,
+    alpha: float,
+    h: float,
+    tolerancia: float,
+    max_iter: int,
+    factor_divergecia: float = 1e6,
+) -> dict[str, object]:
+    """Entrena la neurona con descenso del gradiente y registra el historial.
+
+    El paro ocurre por tolerancia del gradiente, por maximo de iteraciones o
+    cuando la perdida crece demasiado, lo que indica una alpha mal calibrada.
+    """
+    x_array, y_array = _validar_datos(x, y)
+    _validar_parametros_lineales(w_inicial, b_inicial)
+    paso_alpha = _validar_alpha(alpha)
+    paso_h = _validar_h(h)
+    limite_tolerancia = _validar_tolerancia(tolerancia)
+    limite_iteraciones = _validar_max_iter(max_iter)
+    if not np.isfinite(factor_divergecia) or factor_divergecia <= 1:
+        raise ValueError("factor_divergecia debe ser un valor finito mayor que uno.")
+
+    w = float(w_inicial)
+    b = float(b_inicial)
+    perdida_inicial = _perdida_mse(x_array, y_array, w, b)
+    historial_w = [w]
+    historial_b = [b]
+    historial_perdida = [perdida_inicial]
+
+    motivo_paro = "maximo_iteraciones"
+    convergio = False
+    divergio = False
+    iteraciones = 0
+
+    for _ in range(limite_iteraciones):
+        vector_gradiente = gradiente(x_array, y_array, w, b, paso_h)
+        if float(np.linalg.norm(vector_gradiente)) < limite_tolerancia:
+            convergio = True
+            motivo_paro = "tolerancia"
+            break
+
+        w = w - paso_alpha * float(vector_gradiente[0])
+        b = b - paso_alpha * float(vector_gradiente[1])
+        iteraciones += 1
+        historial_w.append(w)
+        historial_b.append(b)
+        perdida_actual = _perdida_mse(x_array, y_array, w, b)
+        historial_perdida.append(perdida_actual)
+
+        if not np.isfinite(perdida_actual) or perdida_actual > factor_divergecia * perdida_inicial:
+            divergio = True
+            motivo_paro = "divergencia"
+            break
+
+    gradiente_final = gradiente(x_array, y_array, w, b, paso_h)
+
+    return {
+        "w": w,
+        "b": b,
+        "w_hist": np.array(historial_w),
+        "b_hist": np.array(historial_b),
+        "perdida_hist": np.array(historial_perdida),
+        "perdida_inicial": perdida_inicial,
+        "perdida_final": historial_perdida[-1],
+        "gradiente_final": gradiente_final,
+        "norma_gradiente_final": float(np.linalg.norm(gradiente_final)),
+        "iteraciones": iteraciones,
+        "motivo_paro": motivo_paro,
+        "convergio": convergio,
+        "divergio": divergio,
+    }
+
+
+def comparar_tasas(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w_inicial: float,
+    b_inicial: float,
+    alphas: list[float],
+    h: float,
+    tolerancia: float,
+    max_iter: int,
+    factor_divergecia: float = 1e6,
+) -> dict[str, dict[str, object]]:
+    """Ejecuta el descenso con varias tasas usando los mismos datos y punto inicial."""
+    if not isinstance(alphas, (list, tuple)) or len(alphas) == 0:
+        raise ValueError("alphas debe ser una lista no vacia de tasas.")
+
+    resultados: dict[str, dict[str, object]] = {}
+    for alpha in alphas:
+        resultado = descenso_gradiente(
+            x,
+            y,
+            w_inicial,
+            b_inicial,
+            alpha,
+            h,
+            tolerancia,
+            max_iter,
+            factor_divergecia,
+        )
+        resultados[str(alpha)] = resultado
+    return resultados

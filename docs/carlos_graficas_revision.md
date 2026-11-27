@@ -2,6 +2,8 @@
 
 [Volver al README principal](../README.md)
 
+[Auditoría, pruebas e integración](carlos_plan_auditoria_graficas.md)
+
 ## Objetivo de tu responsabilidad
 
 Convertir los resultados numéricos en tres figuras claras a 300 DPI y ayudar a detectar errores de integración o interpretación.
@@ -55,4 +57,22 @@ Marca cada punto únicamente después de comprobarlo con una ejecución real:
 - [ ] Las etiquetas y leyendas se leen correctamente.
 - [ ] Los tres archivos existen en `latex/figuras/` y fueron exportados a 300 DPI.
 - [ ] Sarid comprobó que las imágenes se ven correctamente dentro del PDF.
+
+## 6. Contrato propuesto para la integración
+
+`graficas.py` ya expone tres funciones: `graficar_superficie_3d`, `graficar_curvas_nivel` y `graficar_convergencia`. Emmanuel y Aarón deben confirmar este contrato antes de conectar el flujo principal:
+
+- Cada historial es un arreglo de forma `(n, 3)` con columnas `w`, `b` y `L`, incluido el punto inicial.
+- `funcion_perdida(w, b)` acepta escalares y arreglos de NumPy y devuelve la pérdida correspondiente.
+- `funcion_gradiente(w, b)` recibe escalares y devuelve `(dL_dw, dL_db)`.
+- Para la comparación de convergencia se usa un diccionario `{alpha: historial}` con al menos dos tasas y el mismo `P₀`.
+- Las rutas predeterminadas apuntan a `latex/figuras/`; otras rutas pueden usarse para borradores.
+
+Las flechas del campo gradiente se normalizan solamente para que sean legibles. Esto se indica en la leyenda y no altera los valores matemáticos. El vector `u` debe llegar ya normalizado desde el módulo matemático; su longitud también se ajusta únicamente para visualizarlo.
+
+## 7. Prueba local del módulo
+
+Se ejecutaron las tres funciones con una pérdida cuadrática conocida y dos historiales de prueba. Los borradores se guardaron en `figuras/prueba_*.png`, no en las rutas definitivas. Se comprobó que los tres PNG son legibles, contienen sus elementos principales y conservan metadatos de 300 DPI. También se verificaron los rechazos de DPI inferior a 300, vector no unitario y comparación con una sola tasa.
+
+Estas pruebas no sustituyen la integración con los datos reales de `calculo_vectorial.py` ni la revisión del PDF.
 

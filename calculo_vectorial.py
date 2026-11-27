@@ -189,3 +189,89 @@ def gradiente_analitico(
     derivada_w = float(-2.0 * np.sum(x_array * residuos) / n)
     derivada_b = float(-2.0 * np.sum(residuos) / n)
     return np.array([derivada_w, derivada_b])
+
+
+def normalizar_direccion(v: np.ndarray | list[float]) -> np.ndarray:
+    """Normaliza un vector de direccion y rechaza el vector cero."""
+    try:
+        vector = np.asarray(v, dtype=float)
+    except (TypeError, ValueError) as error:
+        raise ValueError("v debe contener únicamente valores numéricos.") from error
+
+    if vector.ndim != 1 or vector.size != 2:
+        raise ValueError("v debe ser un vector de dos componentes (v_w, v_b).")
+    if not np.all(np.isfinite(vector)):
+        raise ValueError("v no puede contener valores NaN o infinitos.")
+
+    norma = float(np.linalg.norm(vector))
+    if norma == 0.0:
+        raise ValueError("v no puede ser el vector (0, 0) porque no se puede normalizar.")
+
+    return vector / norma
+
+
+def derivada_direccional(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w: float,
+    b: float,
+    h: float,
+    v: np.ndarray | list[float],
+) -> dict[str, object]:
+    """Calcula u, el gradiente y la derivada direccional D_u L."""
+    vector_unitario = normalizar_direccion(v)
+    vector_gradiente = gradiente(x, y, w, b, h)
+    derivada = float(np.dot(vector_gradiente, vector_unitario))
+    return {
+        "u": vector_unitario,
+        "gradiente": vector_gradiente,
+        "derivada": derivada,
+        "norma_gradiente": float(np.linalg.norm(vector_gradiente)),
+    }
+
+
+def comprobar_teorema(
+    x: np.ndarray | list[float],
+    y: np.ndarray | list[float],
+    w: float,
+    b: float,
+    h: float,
+    semilla: int = 42,
+    cantidad: int = 100,
+    tolerancia: float = 1e-8,
+) -> dict[str, object]:
+    """Verifica -||gradiente|| <= D_u L <= ||gradiente|| con vectores aleatorios."""
+    if isinstance(cantidad, bool) or not isinstance(cantidad, (int, np.integer)) or cantidad <= 0:
+        raise ValueError("cantidad debe ser un entero positivo.")
+    if isinstance(semilla, bool) or not isinstance(semilla, (int, np.integer)) or semilla < 0:
+        raise ValueError("semilla debe ser un entero no negativo.")
+    if not np.isfinite(tolerancia) or tolerancia < 0:
+        raise ValueError("tolerancia debe ser un valor finito no negativo.")
+
+    vector_gradiente = gradiente(x, y, w, b, h)
+    norma = float(np.linalg.norm(vector_gradiente))
+    generador = np.random.default_rng(semilla)
+
+    casos: list[dict[str, float]] = []
+    cumple = True
+    for _ in range(int(cantidad)):
+        vector = generador.normal(size=2)
+        vector_unitario = vector / np.linalg.norm(vector)
+        derivada = float(np.dot(vector_gradiente, vector_unitario))
+        dentro = -norma - tolerancia <= derivada <= norma + tolerancia
+        cumple = cumple and dentro
+        casos.append(
+            {
+                "derivada": derivada,
+                "limite_inferior": -norma,
+                "limite_superior": norma,
+                "cumple": bool(dentro),
+            }
+        )
+
+    return {
+        "cumple": bool(cumple),
+        "norma_gradiente": norma,
+        "cantidad": int(cantidad),
+        "casos": casos,
+    }
